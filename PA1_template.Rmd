@@ -1,0 +1,135 @@
+---
+title: "Reproducible_Research Project 1"
+author: "YL Chang"
+date: "Monday, May 11, 2015"
+output: html_document
+---
+
+##Loading and preprocessing the data
+
+The following code chunk reads the data and store them in 3 arrays.
+
+```{r, echo=FALSE}
+setwd("c:/users/13360/desktop/coursera/Reproducible_Research/Week_2/Project")
+```
+```{r}
+data <- read.csv("activity.csv")
+steps <-data$steps
+date <- data$date
+interval <-data$interval
+```
+
+##What is mean total number of steps taken per day?
+
+Calculate the total number of steps taken per day. This is done by using the "tapply" function.
+
+```{r}
+stepdate<-tapply(steps, date, sum, na.rm = TRUE)
+```
+
+Make a histogram of the total number of steps taken each day
+
+```{r}
+hist(stepdate, main = "Total Step per Day",xlab = "Steps", col = "red")
+```
+
+This distribution is skewed to the left. This is because that there are a lot of 
+NA in the original data set.
+
+Calculate and report the mean and median of the total number of steps taken per day
+
+```{r}
+mean(stepdate)
+median(stepdate)
+```
+
+##What is the average daily activity pattern?
+
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) 
+and the average number of steps taken, averaged across all days (y-axis)
+
+```{r}
+stepinterval<-tapply(steps, interval, mean, na.rm = TRUE)
+intervallevels <- levels(factor(interval))
+plot(stepinterval~intervallevels,type = "l", ylab = "number of steps", col = "red")
+```
+
+Which 5-minute interval, on average across all the days in the dataset, 
+contains the maximum number of steps?
+
+```{r}
+intervallevels[which.max(stepinterval)]
+```
+
+##Imputing missing values
+
+Calculate and report the total number of missing values in the dataset
+
+```{r}
+sum(is.na(steps))
+```
+
+Devise a strategy for filling in all of the missing values in the dataset. 
+Using mean of the 5-minute intervals.
+
+```{r}
+newsteps <- steps
+meanstepinterval<-tapply(newsteps, interval, mean, na.rm = TRUE)
+```
+
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+ind <- which( is.na( newsteps ) )
+for (i in 1:length(ind)){
+    k <- ind[i]%%dim(meanstepinterval)
+    if(k == 0) {
+      newsteps[ind[i]] <- meanstepinterval[dim(meanstepinterval)]
+    } else {
+      newsteps[ind[i]] <- meanstepinterval[k]
+    }
+}
+```
+
+Make a histogram of the total number of steps taken each day and 
+
+```{r}
+newstepdate<-tapply(newsteps, date, sum, na.rm = TRUE)
+hist(newstepdate, main = "Total Step per Day",xlab = "Steps", col = "red")
+```
+
+After imputing the missing values by using the mean of the 5-minute interval accross all dates, the skewed distribution become more normal.
+
+Calculate and report the mean and median total number of steps taken per day. 
+
+```{r}
+mean(newstepdate)
+median(newstepdate)
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+Create a new factor variable in the dataset with two levels ??? ???weekday??? and ???weekend???
+
+```{r}
+weekdaydata <- weekdays(as.Date(date,"%m/%d/%Y"))
+WDWE<-rep("weekday", each = length(weekdaydata))
+WDWE[which(weekdaydata == "Saturday" | weekdaydata == "Sunday")] <- "weekend"
+```
+
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis)
+and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```{r}
+splitnewsteps<-split(newsteps,WDWE)
+splitinterval<-split(interval,WDWE)
+
+splitnewstepintervalWD<-tapply(splitnewsteps$weekday, splitinterval$weekday, mean, na.rm = TRUE)
+splitnewstepintervalWE<-tapply(splitnewsteps$weekend, splitinterval$weekend, mean, na.rm = TRUE)
+
+par(mfrow = c(1, 2))
+    plot(splitnewstepintervalWD~intervallevels,type = "l",col = "red", ylab = "number of steps", main = "Weekday steps per Interval")
+    plot(splitnewstepintervalWE~intervallevels,type = "l",col = "red", ylab = "number of steps", main = "Weekend steps per Interval")
+```
+
+It can be seen from the plots that this test object is more active in the weekend than in the weekday.
